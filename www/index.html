@@ -27,20 +27,170 @@
         <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
         <link rel="stylesheet" type="text/css" href="css/index.css" />
+        <link rel="stylesheet" type="text/css" href="css/jquery-ui.css" />
+        <link rel="stylesheet" type="text/css" href="css/jquery-ui.structure.css" />
+        <link rel="stylesheet" type="text/css" href="css/jquery-ui.theme.css" />
+        <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.css" />
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+        <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
         <title>Hello World</title>
     </head>
     <body>
-        <div class="app">
-            <h1>PhoneGap</h1>
-            <div id="deviceready" class="blink">
-                <p class="event listening">Connecting to Device</p>
-                <p class="event received">Device is Ready</p>
-            </div>
+
+        <script type="text/javascript" src="js/jquery-ui-1.11.2.custom/jquery.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.11.2.custom/jquery-ui.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.11.2.custom/jquery-ui.min.js"></script>
+        <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+        <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+        <script type="text/javascript" src="js/bootstrap.js"></script>
+
+        <!-- Start of first page -->
+        <div data-role="page" id="homepage">
+
+            <div data-role="header">
+                <button><a href='#settings'>Settings</a></button>
+                <button><a href='#new_todo'>New Todo</a></button>
+                <h1>TODO's</h1>
+            </div><!-- /header -->
+
+            <div data-role="content">
+                <div id="status">
+                    
+                </div>
+            </div><!-- /content -->
         </div>
+
+        <!-- Start of second page -->
+        <div data-role="page" id="settings">
+
+            <div data-role="header">
+                <h1>Settings</h1>
+                <button><a href='#homepage'>Back</a></button>
+            </div><!-- /header -->
+
+            <div data-role="content">	
+                <label for="display_user_switch">Toon gebruiker bij todo</label>
+                <select name="display_user_switch" id="display_user_switch" data-role="slider">
+                    <option value="off">Uit</option>
+                    <option value="on">Aan</option>
+                </select>
+                <label for="display_time_switch">Toon tijd bij todo</label>
+                <select name="display_time_switch" id="display_time_switch" data-role="slider">
+                    <option value="off">Uit</option>
+                    <option value="on">Aan</option>
+                </select>
+                <button id="save_settings">Opslaan</button>
+            </div><!-- /content -->
+
+        </div><!-- /page -->
+
+        <div data-role="page" id="new_todo">
+
+            <div data-role="header">
+                <h1>Nieuwe todo</h1>
+                <button><a href='#homepage'>Back</a></button>
+            </div><!-- /header -->
+
+            <div data-role="content">	
+                <input type="text" id="name_new_todo" placeholder="user" />
+                <textarea id="description_new_todo" placeholder="description" ></textarea>
+                <button id="save_new_todo">Save</button>
+            </div><!-- /content -->
+
+        </div><!-- /page -->
+
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/index.js"></script>
         <script type="text/javascript">
             app.initialize();
+            var db = openDatabase('todo', '1.0', 'todo_db', 2 * 1024 * 1024);
+
+            $(document).ready(function () {
+
+                fillTodoList();
+
+                $("#save_settings").click(function () {
+                    if ($("#display_time_switch").val() == "on") {
+                        localStorage.setItem("show_time", "true");
+                    } else {
+                        localStorage.setItem("show_time", "false");
+                    }
+
+                    if ($("#display_user_switch").val() == "on") {
+                        localStorage.setItem("show_user", "true");
+                    } else {
+                        localStorage.setItem("show_user", "false");
+                    }
+
+                    //console.log(localStorage.getItem('show_user') + " " + localStorage.getItem('show_time'));
+                    configSavedSettings();
+                });
+
+                $("#save_new_todo").click(function () {
+                    doFormSubmit();
+                });
+            });
+
+            function configSavedSettings() {
+                if (localStorage.getItem('show_user') == "true") {
+                    console.log("show user true");
+                    $("#user_show").html('gebruiker');
+                } else {
+                    console.log("show user false");
+                    $("#user_show").html("");
+                }
+
+                if (localStorage.getItem('show_time') == "true") {
+                    console.log("show time true");
+                    $("#time_show").html('tijd');
+                } else {
+                    console.log("show time false");
+                    $("#time_show").html("");
+                }
+            }
+
+            function doFormSubmit() {
+                var now = new Date();
+
+                var day = ("0" + now.getDate()).slice(-2);
+                var month = ("0" + (now.getMonth() + 1)).slice(-2);
+
+                var today = now.getFullYear() + "-" + (month) + "-" + (day);
+
+                var name = $("#name_new_todo").val();
+                var description = $("#description_new_todo").val();
+
+                db.transaction(function (tx) {
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS todo (id unique autoincrement, name, description, time)');
+                    tx.executeSql('INSERT INTO todo (name, description, time) VALUES (' + name + ', ' + description + ', ' + today + ')');
+                    console.log("query done");
+                    
+                });
+                $("#name_new_todo").val("");
+                $("#description_new_todo").val("");
+                fillTodoList();
+            }
+
+            function fillTodoList() {
+                
+                db.transaction(function (tx) {
+                    
+                    tx.executeSql('SELECT * FROM todo', [], function (tx, results) {
+                        console.log("todoLIst");
+                        var len = results.rows.length, i;
+                        var msg = "<p>Found rows: " + len + "</p>";
+                        $('#status').innerHTML += msg;
+                        for (i = 0; i < len; i++) {
+                            msg = "<p><b>" + results.rows.item(i).name + "</b></p>";
+                            msg += "<p><b>" + results.rows.item(i).description + "</b></p>";
+                            msg += "<p><b>" + results.rows.item(i).time + "</b></p>";
+                            $('#status').innerHTML += msg;
+                        }
+                    }, null);
+                });
+            }
+
         </script>
     </body>
 </html>
