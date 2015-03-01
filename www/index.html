@@ -56,7 +56,7 @@
 
             <div data-role="content">
                 <div id="status">
-                    
+
                 </div>
             </div><!-- /content -->
         </div>
@@ -104,9 +104,10 @@
         <script type="text/javascript" src="js/index.js"></script>
         <script type="text/javascript">
             app.initialize();
-            var db = openDatabase('todo', '1.0', 'todo_db', 2 * 1024 * 1024);
+            var db = "";
 
             $(document).ready(function () {
+                initDB();
 
                 fillTodoList();
 
@@ -131,6 +132,15 @@
                     doFormSubmit();
                 });
             });
+
+            function initDB() {
+                db = openDatabase('todo', '1.0', 'todos', 2 * 1024 * 1024);
+                if (db) {
+                    db.transaction(function (tx) {
+                        tx.executeSql("CREATE TABLE IF NOT EXISTS todo (id unique autoincrement, name text, description text)", []);
+                    }); 
+                }
+            }
 
             function configSavedSettings() {
                 if (localStorage.getItem('show_user') == "true") {
@@ -157,40 +167,46 @@
                 var month = ("0" + (now.getMonth() + 1)).slice(-2);
 
                 var today = now.getFullYear() + "-" + (month) + "-" + (day);
-
+                
+                var info = {
+                    "name": $("#name_new_todo").val(),
+                    "description": $("#description_new_todo").val() 
+                };
+                
                 var name = $("#name_new_todo").val();
                 var description = $("#description_new_todo").val();
 
                 db.transaction(function (tx) {
-                    tx.executeSql('CREATE TABLE IF NOT EXISTS todo (id unique autoincrement, name, description, time)');
-                    tx.executeSql('INSERT INTO todo (name, description, time) VALUES (' + name + ', ' + description + ', ' + today + ')');
+                    tx.executeSql('INSERT INTO todo (name, description) VALUES (?,?)', [info.name, info.description]);
                     console.log("query done");
-                    
                 });
+
                 $("#name_new_todo").val("");
                 $("#description_new_todo").val("");
                 fillTodoList();
             }
 
             function fillTodoList() {
-                
-                db.transaction(function (tx) {
-                    
+
+                $("#status").innerHtml = "";
+                db.transaction(function(tx) {
                     tx.executeSql('SELECT * FROM todo', [], function (tx, results) {
-                        console.log("todoLIst");
-                        var len = results.rows.length, i;
+                        var len = results.rows.length;
                         var msg = "<p>Found rows: " + len + "</p>";
-                        $('#status').innerHTML += msg;
+                        
+                        $("#status").innerHtml = msg;
+                        // fill homepage
                         for (i = 0; i < len; i++) {
                             msg = "<p><b>" + results.rows.item(i).name + "</b></p>";
                             msg += "<p><b>" + results.rows.item(i).description + "</b></p>";
-                            msg += "<p><b>" + results.rows.item(i).time + "</b></p>";
+//                          msg += "<p><b>" + results.rows.item(i).time + "</b></p>";
                             $('#status').innerHTML += msg;
                         }
+
                     }, null);
                 });
+                
             }
-
         </script>
     </body>
 </html>
