@@ -1,0 +1,31 @@
+{
+	"author"          : {
+		"name"        : "constantology",
+		"email"       : "christos@muigui.com",
+		"url"         : "http://muigui.com"
+	},
+	"description"     : "m8 is a small utility library you might find useful or just plain annoying.",
+ 	"devDependencies" : {
+		"catn8"       : ">= 0.0.4",
+		"chai"        : ">= 1.2.0",
+		"mocha"       : ">= 1.4.2"
+ 	},
+ 	"engines"         : {
+ 		"node"        : ">= 0.8.x"
+ 	},
+	"keywords"        : ["api", "framework", "functional", "javascript", "library", "programming", "utility"],
+	"licenses"        : [ {
+		"type"        : "MIT",
+		"url"         : "https://raw.github.com/constantology/m8/master/LICENSE"
+	} ],
+	"main"            : "./m8",
+	"name"            : "m8",
+	"repository"      : {
+		"type"        : "git",
+		"url"         : "git@github.com:constantology/m8.git"
+	},
+	"scripts"         : {
+		"test"        : "mocha -c --ignore-leaks -R spec -u tdd ./test/*.test.js"
+	},
+	"version"         : "0.4.4"
+}

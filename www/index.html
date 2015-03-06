@@ -35,7 +35,7 @@
         <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
         <title>Hello World</title>
     </head>
-    <body>
+    <body onload="init();">
 
         <script type="text/javascript" src="js/jquery-ui-1.11.2.custom/jquery.js"></script>
         <script type="text/javascript" src="js/jquery-ui-1.11.2.custom/jquery-ui.js"></script>
@@ -56,7 +56,8 @@
 
             <div data-role="content">
                 <div id="status">
-
+                    <ul id="todoItems">
+                    </ul>
                 </div>
             </div><!-- /content -->
         </div>
@@ -91,122 +92,142 @@
                 <h1>Nieuwe todo</h1>
                 <button><a href='#homepage'>Back</a></button>
             </div><!-- /header -->
-
-            <div data-role="content">	
-                <input type="text" id="name_new_todo" placeholder="user" />
-                <textarea id="description_new_todo" placeholder="description" ></textarea>
-                <button id="save_new_todo">Save</button>
-            </div><!-- /content -->
-
+            <form type="post" onsubmit="addTodo(); return false;">
+                <div data-role="content">	
+                    <input type="text" id="name_new_todo" placeholder="user" />
+                    <textarea id="description_new_todo" placeholder="description" ></textarea>
+                    <button id="save_new_todo">Save</button>
+                </div><!-- /content -->
+            </form>
         </div><!-- /page -->
 
-        <script type="text/javascript" src="cordova.js"></script>
+        <!--        <script type="text/javascript" src="cordova.js"></script>-->
         <script type="text/javascript" src="js/index.js"></script>
         <script type="text/javascript">
-            app.initialize();
-            var db = "";
+        app.initialize();
 
-            $(document).ready(function () {
-                initDB();
+        var webSql = {};
+        webSql.webdb = {};
+        webSql.webdb.db = null;
 
-                fillTodoList();
+        webSql.webdb.open = function () {
+            var dbSize = 5 * 1024 * 1024; // 5MB
+            webSql.webdb.db = openDatabase("Todo", "1", "Todo manager", dbSize);
+        }
 
-                $("#save_settings").click(function () {
-                    if ($("#display_time_switch").val() == "on") {
-                        localStorage.setItem("show_time", "true");
-                    } else {
-                        localStorage.setItem("show_time", "false");
-                    }
+        webSql.webdb.onError = function (tx, e) {
+            alert("There has been an error: " + e.message);
+        }
 
-                    if ($("#display_user_switch").val() == "on") {
-                        localStorage.setItem("show_user", "true");
-                    } else {
-                        localStorage.setItem("show_user", "false");
-                    }
+        webSql.webdb.onSuccess = function (tx, r) {
+            // re-render the data.
+            // loadTodoItems is defined in Step 4a
+            webSql.webdb.getAllTodoItems(loadTodoItems);
+        }
 
-                    //console.log(localStorage.getItem('show_user') + " " + localStorage.getItem('show_time'));
-                    configSavedSettings();
-                });
-
-                $("#save_new_todo").click(function () {
-                    doFormSubmit();
-                });
+        webSql.webdb.createTable = function () {
+            var db = webSql.webdb.db;
+            db.transaction(function (tx) {
+                tx.executeSql("DROP TABLE todo");
+                tx.executeSql("CREATE TABLE IF NOT EXISTS " +
+                        "todo(ID INTEGER PRIMARY KEY ASC, todo TEXT, description TEXT, added_on DATETIME)", []);
             });
+        }
 
-            function initDB() {
-                db = openDatabase('todo', '1.0', 'todos', 2 * 1024 * 1024);
-                if (db) {
-                    db.transaction(function (tx) {
-                        tx.executeSql("CREATE TABLE IF NOT EXISTS todo (id unique autoincrement, name text, description text)", []);
-                    }); 
-                }
+        webSql.webdb.addTodo = function (todoText, todoDescription) {
+            var db = webSql.webdb.db;
+            db.transaction(function (tx) {
+                var addedOn = new Date();
+                tx.executeSql("INSERT INTO todo(todo, description, added_on) VALUES (?,?,?)",
+                        [todoText, todoDescription, addedOn],
+                        webSql.webdb.onSuccess,
+                        webSql.webdb.onError);
+            });
+        }
+
+        webSql.webdb.getAllTodoItems = function (renderFunc) {
+            var db = webSql.webdb.db;
+            db.transaction(function (tx) {
+                tx.executeSql("SELECT * FROM todo", [], renderFunc,
+                        webSql.webdb.onError);
+            });
+        }
+
+        function loadTodoItems(tx, rs) {
+            var rowOutput = "";
+            var todoItems = document.getElementById("todoItems");
+            
+            for (var i = 0; i < rs.rows.length; i++) {
+                rowOutput += renderTodo(rs.rows.item(i));
             }
 
-            function configSavedSettings() {
-                if (localStorage.getItem('show_user') == "true") {
-                    console.log("show user true");
-                    $("#user_show").html('gebruiker');
+            todoItems.innerHTML = rowOutput;
+            
+        }
+        function renderTodo(row) {
+            var showTime = "";
+            var showUser = "";
+            if(localStorage.getItem('show_time') == "true"){
+                showTime = row.added_on;
+            }else{
+                showTime = "";
+            }
+            if(localStorage.getItem('show_user') == "true"){
+                showUser = row.todo;
+            }else{
+                showUser = "";
+            }
+            return "<li>" + showUser + " " + row.description + showTime +
+                    " [<a href='javascript:void(0);' onclick=\'webSql.webdb.deleteTodo(" +
+                    row.ID + ");\'>Delete</a>]</li>";
+        }
+
+        webSql.webdb.deleteTodo = function (id) {
+            var db = webSql.webdb.db;
+            db.transaction(function (tx) {
+                tx.executeSql("DELETE FROM todo WHERE ID=?", [id],
+                        webSql.webdb.onSuccess,
+                        webSql.webdb.onError);
+            });
+        }
+
+        function init() {
+            webSql.webdb.open();
+            webSql.webdb.createTable();
+            webSql.webdb.getAllTodoItems(loadTodoItems);
+        }
+
+        function addTodo() {
+            var todo = document.getElementById("name_new_todo");
+            var description = document.getElementById("description_new_todo");
+            webSql.webdb.addTodo(todo.value, description.value);
+            todo.value = "";
+            description.value = "";
+      }
+
+
+        // start the party
+        $(document).bind('pageinit', function () {
+            $("#save_settings").unbind('click');
+            $("#save_settings").click(function () {
+                if ($("#display_time_switch").val() == "on") {
+                    localStorage.setItem("show_time", "true");
                 } else {
-                    console.log("show user false");
-                    $("#user_show").html("");
+                    localStorage.setItem("show_time", "false");
                 }
 
-                if (localStorage.getItem('show_time') == "true") {
-                    console.log("show time true");
-                    $("#time_show").html('tijd');
+                if ($("#display_user_switch").val() == "on") {
+                    localStorage.setItem("show_user", "true");
                 } else {
-                    console.log("show time false");
-                    $("#time_show").html("");
+                    localStorage.setItem("show_user", "false");
                 }
-            }
 
-            function doFormSubmit() {
-                var now = new Date();
+                console.log(localStorage.getItem('show_user') + " " + localStorage.getItem('show_time'));
+                webSql.webdb.getAllTodoItems(loadTodoItems);
+            });  
+        });
 
-                var day = ("0" + now.getDate()).slice(-2);
-                var month = ("0" + (now.getMonth() + 1)).slice(-2);
 
-                var today = now.getFullYear() + "-" + (month) + "-" + (day);
-                
-                var info = {
-                    "name": $("#name_new_todo").val(),
-                    "description": $("#description_new_todo").val() 
-                };
-                
-                var name = $("#name_new_todo").val();
-                var description = $("#description_new_todo").val();
-
-                db.transaction(function (tx) {
-                    tx.executeSql('INSERT INTO todo (name, description) VALUES (?,?)', [info.name, info.description]);
-                    console.log("query done");
-                });
-
-                $("#name_new_todo").val("");
-                $("#description_new_todo").val("");
-                fillTodoList();
-            }
-
-            function fillTodoList() {
-
-                $("#status").innerHtml = "";
-                db.transaction(function(tx) {
-                    tx.executeSql('SELECT * FROM todo', [], function (tx, results) {
-                        var len = results.rows.length;
-                        var msg = "<p>Found rows: " + len + "</p>";
-                        
-                        $("#status").innerHtml = msg;
-                        // fill homepage
-                        for (i = 0; i < len; i++) {
-                            msg = "<p><b>" + results.rows.item(i).name + "</b></p>";
-                            msg += "<p><b>" + results.rows.item(i).description + "</b></p>";
-//                          msg += "<p><b>" + results.rows.item(i).time + "</b></p>";
-                            $('#status').innerHTML += msg;
-                        }
-
-                    }, null);
-                });
-                
-            }
         </script>
     </body>
 </html>
