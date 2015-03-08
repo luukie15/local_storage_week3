@@ -205,8 +205,8 @@
       }
 
 
-        // start the party
         $(document).bind('pageinit', function () {
+            init();
             $("#save_settings").unbind('click');
             $("#save_settings").click(function () {
                 if ($("#display_time_switch").val() == "on") {
