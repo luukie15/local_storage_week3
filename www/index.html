@@ -127,7 +127,6 @@
         webSql.webdb.createTable = function () {
             var db = webSql.webdb.db;
             db.transaction(function (tx) {
-                tx.executeSql("DROP TABLE todo");
                 tx.executeSql("CREATE TABLE IF NOT EXISTS " +
                         "todo(ID INTEGER PRIMARY KEY ASC, todo TEXT, description TEXT, added_on DATETIME)", []);
             });
@@ -206,7 +205,7 @@
 
 
         $(document).bind('pageinit', function () {
-            init();
+            //init();
             $("#save_settings").unbind('click');
             $("#save_settings").click(function () {
                 if ($("#display_time_switch").val() == "on") {
