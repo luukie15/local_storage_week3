@@ -121,7 +121,6 @@
 
         webSql.webdb.onSuccess = function (tx, r) {
             // re-render the data.
-            // loadTodoItems is defined in Step 4a
             webSql.webdb.getAllTodoItems(loadTodoItems);
         }
 
@@ -222,7 +221,7 @@
                     localStorage.setItem("show_user", "false");
                 }
 
-                console.log(localStorage.getItem('show_user') + " " + localStorage.getItem('show_time'));
+//                console.log(localStorage.getItem('show_user') + " " + localStorage.getItem('show_time'));
                 webSql.webdb.getAllTodoItems(loadTodoItems);
             });  
         });
