@@ -99,9 +99,9 @@
 
 
         $(document).bind('pageinit', function () {
-            //init();
             $("#save_settings").unbind('click');
-            $("#save_settings").click(function () {
+            $("#save_settings").unbind('tab');
+            $("#save_settings").on('tap', function () {
                 if ($("#display_time_switch").val() == "on") {
                     localStorage.setItem("show_time", "true");
                 } else {
